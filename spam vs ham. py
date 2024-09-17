@@ -1,0 +1,53 @@
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.model_selection import GridSearchCV
+
+def load_stopwords(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return set(file.read().splitlines())
+
+df = pd.read_csv('/Users/charumalik/Downloads/Task_1.csv')
+print(df['labels'].value_counts())
+
+english_stopwords = load_stopwords('/Users/charumalik/Downloads/stopwords/english')
+french_stopwords = load_stopwords('/Users/charumalik/Downloads/stopwords/french')
+german_stopwords = load_stopwords('/Users/charumalik/Downloads/stopwords/german')
+
+stop_words = list(english_stopwords | french_stopwords | german_stopwords)
+
+tfidf = TfidfVectorizer(stop_words=stop_words)
+
+X = tfidf.fit_transform(df['text'])
+y = df['labels']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+lr = LogisticRegression(max_iter=1000)
+lr.fit(X_train, y_train)
+
+y_pred = lr.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.4f}")
+
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(conf_matrix)
+
+param_grid = {'C': [0.01, 0.1, 1, 10]}
+grid_search = GridSearchCV(LogisticRegression(max_iter=1000), param_grid, cv=4)
+grid_search.fit(X_train, y_train)
+
+best_lr = grid_search.best_estimator_
+y_pred_best = best_lr.predict(X_test)
+
+best_accuracy = accuracy_score(y_test, y_pred_best)
+print(f"Best Tuned Model Accuracy: {best_accuracy:.4f}")
+
+best_conf_matrix = confusion_matrix(y_test, y_pred_best)
+print("Confusion Matrix (Tuned Model):")
+print(best_conf_matrix)
